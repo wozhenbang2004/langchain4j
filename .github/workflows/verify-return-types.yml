@@ -16,31 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 3560c18be16030ccaad5050e08c4d0b2d1558c77
+          ref: 6c2b0c813219dbe3fab90f3eb59ef95a3e1bfeeb
           fetch-depth: 0
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           java-version: '17'
           distribution: temurin
           cache: maven
-      - name: Load project formatter and report current check
-        continue-on-error: true
+      - name: Check changed Java file formatting
         run: mvn -B -Pspotless -pl langchain4j spotless:check
-      - name: Print formatting diff without changing source
-        run: |
-          lcj_guava=$(find "$HOME/.m2/repository/com/google/guava/guava" -name '*.jar' | sort -V | tail -n 1)
-          lcj_formatter_cp="$HOME/.m2/repository/com/palantir/javaformat/palantir-java-format/2.89.0/palantir-java-format-2.89.0.jar:$HOME/.m2/repository/com/palantir/javaformat/palantir-java-format-spi/2.89.0/palantir-java-format-spi-2.89.0.jar:$lcj_guava:$(find "$HOME/.m2/repository" -name '*.jar' -printf '%p:')"
-          for lcj_source in langchain4j/src/main/java/dev/langchain4j/service/TypeUtils.java langchain4j/src/main/java/dev/langchain4j/service/DefaultAiServices.java; do
-            lcj_formatted=$(java \
-              --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \
-              --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
-              -cp "$lcj_formatter_cp" com.palantir.javaformat.java.Main --palantir --skip-reflowing-long-strings "$lcj_source")
-            [[ "$lcj_formatted" == "package dev.langchain4j.service;"* ]]
-            diff --strip-trailing-cr -u "$lcj_source" <(printf '%s\n' "$lcj_formatted") || test "$?" -eq 1
-          done
-          git diff --exit-code
+      - name: Compile and run image and existing return type regressions
+        run: mvn -B -pl langchain4j -am test -Dtest=ServiceOutputParserImageReturnTypeTest,ServiceOutputParserTest,AiServiceValidationTest,TypeUtilsTest,JsonSchemasTest -Dsurefire.failIfNoSpecifiedTests=false -DembeddingsSkipDownload
