@@ -39,7 +39,7 @@ jobs:
               --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
               --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \
               --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
-              -cp "$lcj_formatter_cp" com.palantir.javaformat.java.Main --palantir "$lcj_source")
+              -cp "$lcj_formatter_cp" com.palantir.javaformat.java.Main --palantir --skip-reflowing-long-strings "$lcj_source")
             [[ "$lcj_formatted" == "package dev.langchain4j.service;"* ]]
             diff --strip-trailing-cr -u "$lcj_source" <(printf '%s\n' "$lcj_formatted") || test "$?" -eq 1
           done
