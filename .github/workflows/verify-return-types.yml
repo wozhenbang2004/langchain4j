@@ -28,7 +28,8 @@ jobs:
         run: mvn -B -Pspotless -pl langchain4j spotless:check
       - name: Print formatting diff without changing source
         run: |
-          lcj_formatter_cp=$(find "$HOME/.m2/repository" -name '*.jar' -printf '%p:')
+          lcj_guava=$(find "$HOME/.m2/repository/com/google/guava/guava" -name '*.jar' | sort -V | tail -n 1)
+          lcj_formatter_cp="$HOME/.m2/repository/com/palantir/javaformat/palantir-java-format/2.89.0/palantir-java-format-2.89.0.jar:$HOME/.m2/repository/com/palantir/javaformat/palantir-java-format-spi/2.89.0/palantir-java-format-spi-2.89.0.jar:$lcj_guava:$(find "$HOME/.m2/repository" -name '*.jar' -printf '%p:')"
           for lcj_source in langchain4j/src/main/java/dev/langchain4j/service/TypeUtils.java langchain4j/src/main/java/dev/langchain4j/service/DefaultAiServices.java; do
             lcj_formatted=$(java \
               --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
@@ -39,6 +40,7 @@ jobs:
               --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \
               --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
               -cp "$lcj_formatter_cp" com.palantir.javaformat.java.Main --palantir "$lcj_source")
+            [[ "$lcj_formatted" == "package dev.langchain4j.service;"* ]]
             diff --strip-trailing-cr -u "$lcj_source" <(printf '%s\n' "$lcj_formatted") || test "$?" -eq 1
           done
           git diff --exit-code
